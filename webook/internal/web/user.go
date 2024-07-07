@@ -4,15 +4,18 @@ import (
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"net/http"
 )
 
 type UserHandler struct {
 	passwordRegexp *regexp.Regexp
 	emailRegexp    *regexp.Regexp
+	svc            *service.UserService
 }
 
-func NewUserHandler() *UserHandler {
+func NewUserHandler(svc *service.UserService) *UserHandler {
 	const (
 		emailRegexPattern    = "[A-Za-z0-9]+([_\\.][A-Za-z0-9]+)*@([A-Za-z0-9\\-]+\\.)+[A-Za-z]{2,6}"
 		passwordRegexPattern = "^(?=.*\\d)(?=.*[A-z])[\\da-zA-Z]{1,9}$"
@@ -22,6 +25,7 @@ func NewUserHandler() *UserHandler {
 	return &UserHandler{
 		passwordRegexp: p,
 		emailRegexp:    e,
+		svc:            svc,
 	}
 }
 
@@ -31,6 +35,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {}
+
 func (u *UserHandler) SignUp(ctx *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email"`
@@ -68,6 +73,16 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "只能由字母、数字组成，1-9位")
 		return
 	}
+
+	err = u.svc.SignUp(ctx.Request.Context(), domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		fmt.Printf("%+v", err.Error())
+		return
+	}
+
 	fmt.Println(req)
 	ctx.String(http.StatusOK, "注册成功")
 }

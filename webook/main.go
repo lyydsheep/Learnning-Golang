@@ -3,6 +3,12 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"strings"
 )
 
@@ -20,10 +26,21 @@ func main() {
 		},
 	}))
 
-	u := web.NewUserHandler()
-	u.RegisterRoutes(server)
+	dsn := "root:root@tcp(localhost:13316)/webook"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	//只在初始化过程panic
+	//panic相当于整个goroutine结束
+	if err != nil {
+		panic(err)
+	}
+	ud := dao.NewUserDAO(db)
+	repo := repository.NewUserRepository(ud)
+	svc := service.NewUserService(repo)
+	u := web.NewUserHandler(svc)
 
+	u.RegisterRoutes(server)
 	server.Run(":8080")
+
 	//server := gin.Default()
 	//server.GET("/hello", func(ctx *gin.Context) {
 	//	ctx.String(http.StatusOK, "hello world")
