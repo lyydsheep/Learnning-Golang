@@ -7,9 +7,9 @@ import (
 )
 
 type User struct {
-	Email    string
+	Id       int    `gorm:"primaryKey, autoIncrement"`
+	Email    string `gorm:"unique"`
 	Password string
-
 	//创建时间、修改时间
 	Ctime int64
 	Utime int64

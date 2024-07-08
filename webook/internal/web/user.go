@@ -79,7 +79,7 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		Password: req.Password,
 	})
 	if err != nil {
-		fmt.Printf("%+v", err.Error())
+		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
 
