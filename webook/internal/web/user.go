@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
@@ -34,6 +35,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	userRegisterRoutes := server.Group("/users")
 	userRegisterRoutes.POST("/signup", u.SignUp)
 	userRegisterRoutes.POST("/login", u.Login)
+	userRegisterRoutes.GET("/profile", u.Profile)
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {
@@ -45,11 +47,19 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	err := u.svc.Login(ctx, req.Email, req.Password)
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
 	if errors.Is(err, service.ErrInvalidUserOrPassword) {
 		ctx.String(http.StatusOK, "账号无效或密码错误")
 		return
 	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+
+	session := sessions.Default(ctx)
+	session.Set("userID", user.Id)
+	err = session.Save()
 	if err != nil {
 		ctx.String(http.StatusOK, "系统错误")
 		return
@@ -115,4 +125,6 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 
 func (u *UserHandler) Edit(ctx *gin.Context) {}
 
-func (u *UserHandler) Profile(ctx *gin.Context) {}
+func (u *UserHandler) Profile(ctx *gin.Context) {
+	ctx.String(http.StatusOK, "OK!")
+}

@@ -2,11 +2,14 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/web/middleware"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
@@ -42,6 +45,10 @@ func InitWebServer() *gin.Engine {
 			return strings.Contains(origin, "company.com")
 		},
 	}))
+
+	store := cookie.NewStore([]byte("secret"))
+	server.Use(sessions.Sessions("mySession", store))
+	server.Use(middleware.NewLoginMiddlewareBuilder().Build())
 	return server
 }
 
