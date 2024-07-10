@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -32,9 +33,29 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	userRegisterRoutes := server.Group("/users")
 	userRegisterRoutes.POST("/signup", u.SignUp)
+	userRegisterRoutes.POST("/login", u.Login)
 }
 
-func (u *UserHandler) Login(ctx *gin.Context) {}
+func (u *UserHandler) Login(ctx *gin.Context) {
+	type loginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req loginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	err := u.svc.Login(ctx, req.Email, req.Password)
+	if errors.Is(err, service.ErrInvalidUserOrPassword) {
+		ctx.String(http.StatusOK, "账号无效或密码错误")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.String(http.StatusOK, "登录成功")
+}
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
 	type SignUpReq struct {
@@ -78,6 +99,11 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		Email:    req.Email,
 		Password: req.Password,
 	})
+
+	if errors.Is(err, service.ErrUserDuplicateEmail) {
+		ctx.String(http.StatusOK, "邮箱冲突")
+		return
+	}
 	if err != nil {
 		ctx.String(http.StatusOK, "系统错误")
 		return

@@ -16,8 +16,8 @@ func main() {
 	db := InitDB()
 	server := InitWebServer() //获取虚拟服务器，并通过中间件解决跨域问题
 
-	u := InitUser(db) //初始化有关user的业务准备
-	u.RegisterRoutes(server)
+	u := InitUser(db)        //初始化有关user的业务准备
+	u.RegisterRoutes(server) //对user有关的业务进行路由注册
 
 	server.Run(":8080")
 }
