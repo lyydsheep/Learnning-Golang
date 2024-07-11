@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
@@ -46,10 +46,14 @@ func InitWebServer() *gin.Engine {
 		},
 	}))
 
-	store := cookie.NewStore([]byte("secret"))
+	//创建session
+	//store := cookie.NewStore([]byte("secret"))
+	store := memstore.NewStore([]byte("fD6TyDBMbRsRYZW3PWI6y4r5oeLJv2x38kSXNHgn6raksxXuIzheW0Bgd6BiVrv0"),
+		[]byte("xZuTExq1NQFqFNvoMykWrmhtvzOP4rM8"))
 	server.Use(sessions.Sessions("mySession", store))
-	server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login").
-		IgnorePaths("/users/signup").Build())
+	server.Use((middleware.NewLoginMiddlewareBuilder().IgnorePath("/users/signup")).
+		IgnorePath("/users/login").Build())
+
 	return server
 }
 

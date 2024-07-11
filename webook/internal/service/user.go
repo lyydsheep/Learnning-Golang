@@ -8,8 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrInvalidUserOrPassword = errors.New("账号无效或密码错误")
-var ErrUserDuplicateEmail = repository.ErrUserDuplicateEmail
+// var ErrInvalidUserOrPassword = errors.New("账号无效或密码错误")
+var (
+	ErrUserDuplicateEmail    = repository.ErrUserDuplicateEmail
+	ErrInvalidUserOrPassword = errors.New("账号无效或密码错误")
+	ErrUserNotFound          = repository.ErrUserNotFound
+)
 
 type UserService struct {
 	repo *repository.UserRepository
@@ -21,27 +25,18 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	}
 }
 
-func (svc *UserService) Profile(ctx context.Context, id int) (domain.User, error) {
-	return svc.repo.FindById(ctx, id)
-}
-
-func (svc *UserService) Edit(ctx context.Context, u domain.User) error {
-	return svc.repo.Update(ctx, u)
-}
-
 func (svc *UserService) Login(ctx context.Context, email, password string) (domain.User, error) {
+	//调用repository服务
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if errors.Is(err, repository.ErrUserNotFound) {
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
-	if err != nil {
-		return domain.User{}, err
-	}
+	//密码比较，hash在前，校验在后
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
-	return u, nil
+	return domain.User{Id: u.Id}, nil
 }
 
 func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
@@ -53,4 +48,16 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	u.Password = string(encrypted)
 	//然后就是存数据库
 	return svc.repo.Create(ctx, u)
+}
+
+func (svc *UserService) Edit(ctx context.Context, u domain.User) error {
+	return svc.repo.Update(ctx, u)
+}
+
+func (svc *UserService) Profile(ctx context.Context, id int) (domain.User, error) {
+	u, err := svc.repo.FindById(ctx, id)
+	if errors.Is(err, ErrUserNotFound) {
+		return domain.User{}, ErrUserNotFound
+	}
+	return u, err
 }

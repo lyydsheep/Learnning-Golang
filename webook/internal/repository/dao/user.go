@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"time"
@@ -35,24 +36,12 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 	}
 }
 
-func (dao *UserDAO) FindById(ctx context.Context, id int) (User, error) {
-	var u User
-	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
-	return u, err
-}
-
-func (dao *UserDAO) Update(ctx context.Context, u User) error {
-	return dao.db.WithContext(ctx).Model(&u).
-		Updates(map[string]interface{}{
-			"name":      u.Name,
-			"birthday":  u.Birthday,
-			"biography": u.Biography,
-		}).Error
-}
-
 func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	if errors.Is(err, ErrUserNotFound) {
+		return User{}, ErrUserNotFound
+	}
 	return u, err
 }
 
@@ -69,4 +58,22 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 		}
 	}
 	return err
+}
+
+func (dao *UserDAO) Update(ctx context.Context, u User) error {
+	fmt.Println(u)
+	return dao.db.WithContext(ctx).Model(&u).Updates(map[string]interface{}{
+		"name":      u.Name,
+		"birthday":  u.Birthday,
+		"biography": u.Biography,
+	}).Error
+}
+
+func (dao *UserDAO) FindById(ctx context.Context, id int) (User, error) {
+	var u User
+	err := dao.db.First(&u, id).Error
+	if errors.Is(err, ErrUserNotFound) {
+		return User{}, ErrUserNotFound
+	}
+	return u, err
 }
