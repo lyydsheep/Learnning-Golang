@@ -21,6 +21,14 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	}
 }
 
+func (svc *UserService) Profile(ctx context.Context, id int) (domain.User, error) {
+	return svc.repo.FindById(ctx, id)
+}
+
+func (svc *UserService) Edit(ctx context.Context, u domain.User) error {
+	return svc.repo.Update(ctx, u)
+}
+
 func (svc *UserService) Login(ctx context.Context, email, password string) (domain.User, error) {
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if errors.Is(err, repository.ErrUserNotFound) {

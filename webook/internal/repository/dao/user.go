@@ -14,9 +14,12 @@ var (
 )
 
 type User struct {
-	Id       int    `gorm:"primaryKey, autoIncrement"`
-	Email    string `gorm:"unique"`
-	Password string
+	Id        int    `gorm:"primaryKey, autoIncrement"`
+	Email     string `gorm:"unique"`
+	Password  string
+	Name      string
+	Birthday  string
+	Biography string
 	//创建时间、修改时间
 	Ctime int64
 	Utime int64
@@ -30,6 +33,21 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 	return &UserDAO{
 		db: db,
 	}
+}
+
+func (dao *UserDAO) FindById(ctx context.Context, id int) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	return u, err
+}
+
+func (dao *UserDAO) Update(ctx context.Context, u User) error {
+	return dao.db.WithContext(ctx).Model(&u).
+		Updates(map[string]interface{}{
+			"name":      u.Name,
+			"birthday":  u.Birthday,
+			"biography": u.Biography,
+		}).Error
 }
 
 func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {

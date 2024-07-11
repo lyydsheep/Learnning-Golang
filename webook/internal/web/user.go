@@ -9,6 +9,7 @@ import (
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"net/http"
+	"unicode/utf8"
 )
 
 type UserHandler struct {
@@ -36,6 +37,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	userRegisterRoutes.POST("/signup", u.SignUp)
 	userRegisterRoutes.POST("/login", u.Login)
 	userRegisterRoutes.GET("/profile", u.Profile)
+	userRegisterRoutes.POST("/edit", u.Edit)
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {
@@ -123,8 +125,60 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "注册成功")
 }
 
-func (u *UserHandler) Edit(ctx *gin.Context) {}
+func (u *UserHandler) Edit(ctx *gin.Context) {
+	type EditReq struct {
+		Id        int    `json:"id"`
+		Name      string `json:"Name"`
+		Birthday  string `json:"Birthday"`
+		Biography string `json:"Biography"`
+	}
+	var req EditReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	//校验昵称的长度
+	length := utf8.RuneCountInString(req.Name)
+	if length < 2 || length > 10 {
+		ctx.String(http.StatusOK, "昵称长度应大于2并小于10")
+		return
+	}
+	//校验简介长度
+	length = utf8.RuneCountInString(req.Biography)
+	if length > 10 {
+		ctx.String(http.StatusOK, "个人简介不能超过十个字符")
+		return
+	}
+
+	err := u.svc.Edit(ctx, domain.User{
+		Id:        req.Id,
+		Name:      req.Name,
+		Birthday:  req.Birthday,
+		Biography: req.Biography,
+	})
+	if err != nil {
+		fmt.Println(err.Error())
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.String(http.StatusOK, "编辑成功")
+}
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "OK!")
+	session := sessions.Default(ctx)
+	id := session.Get("userID")
+	if id == nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	val, ok := id.(int)
+	if !ok {
+		ctx.String(http.StatusOK, "invalid id")
+		return
+	}
+	user, err := u.svc.Profile(ctx, val)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.String(http.StatusOK, "name: "+user.Name+"Birthday: "+user.Birthday+"Biography: "+user.Biography)
 }

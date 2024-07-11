@@ -29,5 +29,4 @@ func main() {
 	for _, e := range employees {
 		fmt.Printf("%+v\n", e)
 	}
-
 }
