@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
@@ -45,19 +43,20 @@ func InitWebServer() *gin.Engine {
 			}
 			return strings.Contains(origin, "company.com")
 		},
+		ExposeHeaders: []string{"x-jwt-token"},
 	}))
 
-	//创建session
-	store, err := redis.NewStore(32, "tcp", "localhost:6379", "",
-		[]byte("fD6TyDBMbRsRYZW3PWI6y4r5oeLJv2x38kSXNHgn6raksxXuIzheW0Bgd6BiVrv0"),
-		[]byte("xZuTExq1NQFqFNvoMykWrmhtvzOP4rM8"))
-	if err != nil {
-		panic(err)
-	}
+	////创建session
+	//store, err := redis.NewStore(32, "tcp", "localhost:6379", "",
+	//	[]byte("fD6TyDBMbRsRYZW3PWI6y4r5oeLJv2x38kSXNHgn6raksxXuIzheW0Bgd6BiVrv0"),
+	//	[]byte("xZuTExq1NQFqFNvoMykWrmhtvzOP4rM8"))
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//server.Use(sessions.Sessions("mySession", store))
 
-	server.Use(sessions.Sessions("mySession", store))
-
-	server.Use((middleware.NewLoginMiddlewareBuilder().IgnorePath("/users/signup")).
+	server.Use((middleware.NewLoginJWTMiddlewareBuilder().IgnorePath("/users/signup")).
 		IgnorePath("/users/login").Build())
 
 	return server

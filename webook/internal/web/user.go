@@ -6,6 +6,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"net/http"
@@ -34,7 +35,8 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	userRegisterRoutes := server.Group("/users")
 	userRegisterRoutes.POST("/signup", u.SignUp)
-	userRegisterRoutes.POST("/login", u.Login)
+	//userRegisterRoutes.POST("/login", u.Login)
+	userRegisterRoutes.POST("/login", u.LoginJWT)
 	userRegisterRoutes.GET("/profile", u.Profile)
 	userRegisterRoutes.POST("/edit", u.Edit)
 }
@@ -68,6 +70,35 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		return
 	}
 
+	ctx.String(http.StatusOK, "登录成功")
+}
+
+func (u *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+
+	//调用service服务
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
+	if errors.Is(err, service.ErrInvalidUserOrPassword) {
+		ctx.String(http.StatusOK, "ErrInvalidUserOrPassword")
+		return
+	}
+	fmt.Println(user)
+	//生成jwt-token
+	token := jwt.New(jwt.SigningMethodHS512)
+	tokenStr, err := token.SignedString([]byte("DMMzjITr6EpQOOjgUzoRAb440lKd2d3y"))
+	if err != nil {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	//将jwt-token加入头部
+	ctx.Header("x-jwt-token", tokenStr)
 	ctx.String(http.StatusOK, "登录成功")
 }
 
@@ -160,21 +191,26 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 	}
 }
 
+//使用session的Profile函数
+//func (u *UserHandler) Profile(ctx *gin.Context) {
+//	id := sessions.Default(ctx).Get("UserId")
+//	if id == nil {
+//		ctx.AbortWithStatus(http.StatusUnauthorized)
+//		return
+//	}
+//	val, ok := id.(int)
+//	if !ok {
+//		ctx.String(http.StatusOK, "系统错误")
+//		return
+//	}
+//	user, err := u.svc.Profile(ctx, val)
+//	if errors.Is(err, service.ErrUserNotFound) {
+//		ctx.String(http.StatusOK, "系统错误")
+//		return
+//	}
+//	ctx.String(http.StatusOK, "Name: %s, Birthday: %s Biography: %s", user.Name, user.Birthday, user.Biography)
+//}
+
 func (u *UserHandler) Profile(ctx *gin.Context) {
-	id := sessions.Default(ctx).Get("UserId")
-	if id == nil {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-	val, ok := id.(int)
-	if !ok {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	user, err := u.svc.Profile(ctx, val)
-	if errors.Is(err, service.ErrUserNotFound) {
-		ctx.String(http.StatusOK, "系统错误")
-		return
-	}
-	ctx.String(http.StatusOK, "Name: %s, Birthday: %s Biography: %s", user.Name, user.Birthday, user.Biography)
+	ctx.String(http.StatusOK, "successful")
 }
