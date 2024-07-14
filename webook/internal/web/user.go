@@ -73,6 +73,11 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "登录成功")
 }
 
+type UserClaims struct {
+	jwt.RegisteredClaims
+	UserId int
+}
+
 func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	type LoginReq struct {
 		Email    string `json:"email"`
@@ -89,16 +94,21 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "ErrInvalidUserOrPassword")
 		return
 	}
-	fmt.Println(user)
-	//生成jwt-token
-	token := jwt.New(jwt.SigningMethodHS512)
-	tokenStr, err := token.SignedString([]byte("DMMzjITr6EpQOOjgUzoRAb440lKd2d3y"))
+
+	//将用户id赋值于claims
+	uc := UserClaims{
+		UserId: user.Id,
+	}
+	//通过claims将userId进行加密形成token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
+	tokenStr, err := token.SignedString([]byte("6dGChSIkiB7LRnrpSiYgRe1gtbPdbXit"))
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	//将jwt-token加入头部
 	ctx.Header("x-jwt-token", tokenStr)
+
 	ctx.String(http.StatusOK, "登录成功")
 }
 
@@ -212,5 +222,16 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 //}
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
-	ctx.String(http.StatusOK, "successful")
+	val, ok := ctx.Get("userClaims")
+	if !ok {
+		ctx.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	uc, ok := val.(UserClaims)
+	if !ok {
+		ctx.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+	//使用userId进行数据查询
+	fmt.Println(uc.UserId)
 }
