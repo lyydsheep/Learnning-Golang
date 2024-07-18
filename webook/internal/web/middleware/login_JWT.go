@@ -7,6 +7,7 @@ import (
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type LoginJWTMiddlewareBuilder struct {
@@ -38,9 +39,9 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 		}
 		//从Authorization中取出JWT-token
 		tokenStr := segs[1]
-		//将JWT-token中所蕴涵的userId赋给claims
-		uc := web.UserClaims{}
-		token, err := jwt.ParseWithClaims(tokenStr, &uc, func(token *jwt.Token) (interface{}, error) {
+		//将JWT-token中所蕴涵的信息赋给claims
+		claims := web.UserClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, &claims, func(token *jwt.Token) (interface{}, error) {
 			//使用加密的key进行解密
 			return []byte("6dGChSIkiB7LRnrpSiYgRe1gtbPdbXit"), nil
 		})
@@ -50,12 +51,19 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 		//没登录
-		if token == nil || uc.UserId == 0 || !token.Valid {
+		if token == nil || claims.UserId == 0 || !token.Valid {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		fmt.Println(uc.UserId)
+		//每十秒生成一个新的token
+		if claims.ExpiresAt.Sub(time.Now()) < time.Second*50 {
+			//延续时间
+			claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Minute))
+			tokenStr, err = token.SignedString([]byte("6dGChSIkiB7LRnrpSiYgRe1gtbPdbXit"))
+			ctx.Header("x-jwt-token", tokenStr)
+		}
+		fmt.Println(claims.UserId)
 		//将userId存入上下文中，方便后续获取数据
-		ctx.Set("userClaims", uc)
+		ctx.Set("userClaims", claims)
 	}
 }

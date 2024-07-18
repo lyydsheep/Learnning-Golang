@@ -10,6 +10,7 @@ import (
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"net/http"
+	"time"
 )
 
 type UserHandler struct {
@@ -97,7 +98,9 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 
 	//将用户id赋值于claims
 	uc := UserClaims{
-		UserId: user.Id,
+		//添加过期时间
+		jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))},
+		user.Id,
 	}
 	//通过claims将userId进行加密形成token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
