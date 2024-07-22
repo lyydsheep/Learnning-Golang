@@ -76,7 +76,8 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 
 type UserClaims struct {
 	jwt.RegisteredClaims
-	UserId int
+	UserId    int
+	UserAgent string
 }
 
 func (u *UserHandler) LoginJWT(ctx *gin.Context) {
@@ -99,16 +100,22 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	//将用户id赋值于claims
 	uc := UserClaims{
 		//添加过期时间
-		jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute))},
-		user.Id,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+		//添加UserId
+		UserId: user.Id,
+		//添加UserAgent
+		UserAgent: ctx.Request.UserAgent(),
 	}
-	//通过claims将userId进行加密形成token
+	//通过claims将UserId、UserAgent进行加密形成token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
 	tokenStr, err := token.SignedString([]byte("6dGChSIkiB7LRnrpSiYgRe1gtbPdbXit"))
 	if err != nil {
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
 	//将jwt-token加入头部
 	ctx.Header("x-jwt-token", tokenStr)
 
@@ -236,5 +243,6 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 		return
 	}
 	//使用userId进行数据查询
+	ctx.String(http.StatusOK, "hello world")
 	fmt.Println(uc.UserId)
 }

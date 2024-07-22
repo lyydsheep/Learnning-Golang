@@ -8,9 +8,12 @@ import (
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web/middleware"
+	"github.com/lyydsheep/Learnning-Golang/webook/pkg/ginx/middlewares/ratelimit"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -45,6 +48,13 @@ func InitWebServer() *gin.Engine {
 		},
 		ExposeHeaders: []string{"x-jwt-token"},
 	}))
+
+	//初始化Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+	//使用gin中间件进行限流
+	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
 
 	////创建session
 	//store, err := redis.NewStore(32, "tcp", "localhost:6379", "",
