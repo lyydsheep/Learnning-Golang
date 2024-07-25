@@ -3,17 +3,15 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/lyydsheep/Learnning-Golang/webook/config"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web/middleware"
-	"github.com/lyydsheep/Learnning-Golang/webook/pkg/ginx/middlewares/ratelimit"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -49,12 +47,12 @@ func InitWebServer() *gin.Engine {
 		ExposeHeaders: []string{"x-jwt-token"},
 	}))
 
-	//初始化Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-	//使用gin中间件进行限流
-	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
+	////初始化Redis
+	//redisClient := redis.NewClient(&redis.Options{
+	//	Addr: config.Config.Redis.Addr,
+	//})
+	////使用gin中间件进行限流
+	//server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
 
 	////创建session
 	//store, err := redis.NewStore(32, "tcp", "localhost:6379", "",
@@ -73,7 +71,7 @@ func InitWebServer() *gin.Engine {
 }
 
 func InitDB() *gorm.DB {
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN), &gorm.Config{})
 	//只在初始化过程panic
 	//panic相当于整个goroutine结束
 	if err != nil {

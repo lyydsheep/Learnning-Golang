@@ -1,0 +1,17 @@
+# persistentVolume表达持久化卷本身具有什么特性
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  # 被pvc找到
+  storageClassName: mysql-pv
+  # 设置存储容量
+  capacity:
+    storage: 1Gi
+  # 本PV支持的访问方式
+  accessModes:
+    - ReadWriteOnce
+  # 本PV的根目录
+  hostPath:
+    path: "/mnt/data"
