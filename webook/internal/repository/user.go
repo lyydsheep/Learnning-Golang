@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/domain"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/cache"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
 )
 
@@ -12,11 +13,13 @@ var ErrUserNotFound = dao.ErrUserNotFound
 
 type UserRepository struct {
 	ud *dao.UserDAO
+	uc *cache.UserCache
 }
 
-func NewUserRepository(ud *dao.UserDAO) *UserRepository {
+func NewUserRepository(ud *dao.UserDAO, uc *cache.UserCache) *UserRepository {
 	return &UserRepository{
 		ud: ud,
+		uc: uc,
 	}
 }
 
@@ -50,13 +53,27 @@ func (repo *UserRepository) Update(ctx context.Context, u domain.User) error {
 }
 
 func (repo *UserRepository) FindById(ctx context.Context, id int) (domain.User, error) {
-	user, err := repo.ud.FindById(ctx, id)
-	if errors.Is(err, ErrUserNotFound) {
-		return domain.User{}, ErrUserNotFound
+	u, err := repo.uc.Get(ctx, id)
+	//缓存中有数据
+	if err == nil {
+		return u, err
 	}
-	return domain.User{
-		Name:      user.Name,
-		Birthday:  user.Birthday,
-		Biography: user.Biography,
-	}, err
+	//缓存中没有数据 ---> 查数据库
+	//缓存炸了 ---> 直接查数据库，有很大的风险，最好做到数据库的限流
+	ue, err := repo.ud.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	//在数据库中查到了数据，设置缓存
+	u = domain.User{
+		Id:        ue.Id,
+		Name:      ue.Name,
+		Birthday:  ue.Birthday,
+		Biography: ue.Biography,
+	}
+	err = repo.uc.Set(ctx, u)
+	if err != nil {
+		//日志监控
+	}
+	return u, err
 }

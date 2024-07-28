@@ -4,6 +4,6 @@
 package config
 
 var Config = webookConfig{
-	DB:    DB{DSN: "root:root@tcp(localhost:11316)/webook"},
+	DB:    DB{DSN: "root:root@tcp(localhost:13316)/webook"},
 	Redis: RedisConfig{Addr: "localhost:6379"},
 }
