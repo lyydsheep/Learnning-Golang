@@ -13,7 +13,7 @@ type Service struct {
 	client   sms.Client
 }
 
-func (s *Service) send(ctx context.Context, tpl string, args []string, numbers ...string) error {
+func (s *Service) Send(ctx context.Context, tpl string, args []string, numbers ...string) error {
 	request := sms.NewSendSmsRequest()
 	//配置信息
 	request.SmsSdkAppId = s.appId
