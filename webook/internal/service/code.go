@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
+	sms2 "github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms/tencent"
 	"math/rand"
 )
@@ -33,7 +34,9 @@ func (cs *CodeService) Send(ctx context.Context, biz, phone string) error {
 		return err
 	}
 	//发送验证码
-	err = cs.sms.Send(ctx, "这是一个tpl", []string{code}, phone)
+	err = cs.sms.Send(ctx, "这是一个tpl", []sms2.NameData{
+		{Name: "code", Data: code},
+	}, phone)
 	return err
 }
 

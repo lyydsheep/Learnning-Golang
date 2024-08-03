@@ -3,6 +3,7 @@ package tencent
 import (
 	"context"
 	"fmt"
+	sms2 "github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms"
 	"github.com/lyydsheep/generic_tools/Slice"
 	sms "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms/v20210111"
 )
@@ -13,7 +14,7 @@ type Service struct {
 	client   sms.Client
 }
 
-func (s *Service) Send(ctx context.Context, tpl string, args []string, numbers ...string) error {
+func (s *Service) Send(ctx context.Context, tpl string, args []sms2.NameData, numbers ...string) error {
 	request := sms.NewSendSmsRequest()
 	//配置信息
 	request.SmsSdkAppId = s.appId
@@ -21,7 +22,11 @@ func (s *Service) Send(ctx context.Context, tpl string, args []string, numbers .
 	request.TemplateId = &tpl
 	request.SetContext(ctx)
 	request.PhoneNumberSet = stringToPtrSlice(numbers)
-	request.TemplateParamSet = stringToPtrSlice(args)
+	strings := make([]string, len(args))
+	for i := range strings {
+		strings[i] = args[i].Data
+	}
+	request.TemplateParamSet = stringToPtrSlice(strings)
 	resp, err := s.client.SendSms(request)
 	if err != nil {
 		return err

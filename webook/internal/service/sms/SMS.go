@@ -3,5 +3,10 @@ package sms
 import "context"
 
 type SMS interface {
-	send(ctx context.Context, tpl string, args []string, numbers ...string) error
+	Send(ctx context.Context, tpl string, args []NameData, numbers ...string) error
+}
+
+type NameData struct {
+	Name string
+	Data string
 }
