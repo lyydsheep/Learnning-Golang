@@ -5,13 +5,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/config"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/cache"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/service"
+	"github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms/memory"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/web/middleware"
+	"github.com/lyydsheep/Learnning-Golang/webook/pkg/ginx/middlewares/ratelimit"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -26,9 +31,17 @@ func main() {
 
 func InitUser(db *gorm.DB) *web.UserHandler {
 	ud := dao.NewUserDAO(db)
-	repo := repository.NewUserRepository(ud)
+	rdb := redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+	uc := cache.NewUserCache(rdb)
+	repo := repository.NewUserRepository(ud, uc)
 	svc := service.NewUserService(repo)
-	u := web.NewUserHandler(svc)
+	cc := cache.NewCodeCache(rdb)
+	cr := repository.NewCodeRepository(cc)
+	memSms := memory.NewService()
+	codeSvc := service.NewCodeService(cr, memSms)
+	u := web.NewUserHandler(svc, codeSvc)
 	return u
 }
 
@@ -47,12 +60,12 @@ func InitWebServer() *gin.Engine {
 		ExposeHeaders: []string{"x-jwt-token"},
 	}))
 
-	////初始化Redis
-	//redisClient := redis.NewClient(&redis.Options{
-	//	Addr: config.Config.Redis.Addr,
-	//})
-	////使用gin中间件进行限流
-	//server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
+	//初始化Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+	//使用gin中间件进行限流
+	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
 
 	////创建session
 	//store, err := redis.NewStore(32, "tcp", "localhost:6379", "",
@@ -64,8 +77,11 @@ func InitWebServer() *gin.Engine {
 	//
 	//server.Use(sessions.Sessions("mySession", store))
 
-	server.Use((middleware.NewLoginJWTMiddlewareBuilder().IgnorePath("/users/signup")).
-		IgnorePath("/users/login").Build())
+	server.Use((middleware.NewLoginJWTMiddlewareBuilder().
+		IgnorePath("/users/signup")).
+		IgnorePath("/users/login").
+		IgnorePath("/users/login_sms/code/send").
+		Build())
 
 	return server
 }

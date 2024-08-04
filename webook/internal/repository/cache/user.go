@@ -14,7 +14,7 @@ type UserCache struct {
 	expiration time.Duration
 }
 
-func NewCacheUser(client redis.Cmdable) *UserCache {
+func NewUserCache(client redis.Cmdable) *UserCache {
 	//设置过期时间
 	return &UserCache{
 		client:     client,

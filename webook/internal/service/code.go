@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository"
 	sms2 "github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms"
-	"github.com/lyydsheep/Learnning-Golang/webook/internal/service/sms/tencent"
 	"math/rand"
 )
 
 type CodeService struct {
 	repo *repository.CodeRepository
-	sms  *tencent.Service
+	sms  sms2.SMS
 }
 
 var (
@@ -19,8 +18,8 @@ var (
 	ErrNotMatch    = repository.ErrNotMatch
 )
 
-func NewCodeService(cr *repository.CodeRepository) *CodeService {
-	return &CodeService{repo: cr}
+func NewCodeService(cr *repository.CodeRepository, sms sms2.SMS) *CodeService {
+	return &CodeService{repo: cr, sms: sms}
 }
 
 // Send 发送验证码，业务类型，目标手机号

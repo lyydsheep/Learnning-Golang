@@ -17,9 +17,10 @@ type UserHandler struct {
 	passwordRegexp *regexp.Regexp
 	emailRegexp    *regexp.Regexp
 	svc            *service.UserService
+	codeSvc        *service.CodeService
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = "[A-Za-z0-9]+([_\\.][A-Za-z0-9]+)*@([A-Za-z0-9\\-]+\\.)+[A-Za-z]{2,6}"
 		passwordRegexPattern = "^(?=.*\\d)(?=.*[A-z])[\\da-zA-Z]{1,9}$"
@@ -30,6 +31,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 		passwordRegexp: p,
 		emailRegexp:    e,
 		svc:            svc,
+		codeSvc:        codeSvc,
 	}
 }
 
@@ -40,6 +42,46 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	userRegisterRoutes.POST("/login", u.LoginJWT)
 	userRegisterRoutes.GET("/profile", u.Profile)
 	userRegisterRoutes.POST("/edit", u.Edit)
+	userRegisterRoutes.POST("/login_sms/code/send", u.LoginSendCode)
+	userRegisterRoutes.POST("/login_sms", u.LoginSms)
+}
+
+func (u *UserHandler) LoginSendCode(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	const biz = "login"
+	err := u.codeSvc.Send(ctx, biz, req.Phone)
+	if errors.Is(err, service.ErrTooFrequent) {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "发送过于频繁",
+		})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "发送成功",
+	})
+}
+
+func (u *UserHandler) LoginSms(ctx *gin.Context) {
+
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {
