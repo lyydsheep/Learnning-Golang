@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/coocood/freecache"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lyydsheep/Learnning-Golang/webook/config"
@@ -34,11 +35,14 @@ func InitUser(db *gorm.DB) *web.UserHandler {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: config.Config.Redis.Addr,
 	})
+	memoryCache := freecache.NewCache(100 * 1024 * 1024)
 	uc := cache.NewUserCache(rdb)
 	repo := repository.NewUserRepository(ud, uc)
 	svc := service.NewUserService(repo)
-	cc := cache.NewCodeCache(rdb)
-	cr := repository.NewCodeRepository(cc)
+	//cc := cache.NewCodeCache(rdb)
+	cm := cache.NewCodeMemory(memoryCache)
+	//这里换成了本地缓存
+	cr := repository.NewCodeRepository(cm)
 	memSms := memory.NewService()
 	codeSvc := service.NewCodeService(cr, memSms)
 	u := web.NewUserHandler(svc, codeSvc)

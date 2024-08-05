@@ -10,7 +10,7 @@ import (
 
 // var ErrInvalidUserOrPassword = errors.New("账号无效或密码错误")
 var (
-	ErrUserDuplicateEmail    = repository.ErrUserDuplicateEmail
+	ErrUserDuplicate         = repository.ErrUserDuplicate
 	ErrInvalidUserOrPassword = errors.New("账号无效或密码错误")
 	ErrUserNotFound          = repository.ErrUserNotFound
 )
@@ -63,14 +63,16 @@ func (svc *UserService) Profile(ctx context.Context, id int) (domain.User, error
 }
 
 func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	//快路径
 	u, err := svc.repo.FindByPhone(ctx, phone)
 	if !errors.Is(err, ErrUserNotFound) {
 		//存在或错误
 		return u, err
 	}
 	//木有，需要创建
+	//慢路径
 	err = svc.repo.Create(ctx, domain.User{Phone: phone})
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrUserDuplicate) {
 		return domain.User{}, err
 	}
 	// 这里会有主从延迟问题（不懂~_~)

@@ -9,7 +9,7 @@ import (
 	"github.com/lyydsheep/Learnning-Golang/webook/internal/repository/dao"
 )
 
-var ErrUserDuplicateEmail = dao.ErrUserDuplicateEmail
+var ErrUserDuplicate = dao.ErrUserDuplicate
 var ErrUserNotFound = dao.ErrUserNotFound
 
 type UserRepository struct {

@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail = errors.New("邮箱已被注册")
-	ErrUserNotFound       = gorm.ErrRecordNotFound
+	ErrUserDuplicate = errors.New("邮箱已被注册")
+	ErrUserNotFound  = gorm.ErrRecordNotFound
 )
 
 type User struct {
@@ -56,7 +56,7 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 	if errors.As(err, &me) {
 		const uniqueConflictsErrNo uint16 = 1062
 		if me.Number == uniqueConflictsErrNo {
-			return ErrUserDuplicateEmail
+			return ErrUserDuplicate
 		}
 	}
 	return err
