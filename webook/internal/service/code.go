@@ -16,6 +16,7 @@ type CodeService struct {
 var (
 	ErrTooFrequent = repository.ErrTooFrequent
 	ErrNotMatch    = repository.ErrNotMatch
+	ErrExceed      = repository.ErrExceed
 )
 
 func NewCodeService(cr *repository.CodeRepository, sms sms2.SMS) *CodeService {
@@ -49,9 +50,9 @@ func (cs *CodeService) Verify(ctx context.Context, biz, phone, input string) err
 func (cs *CodeService) generateCode(biz string) string {
 	switch biz {
 	case "login":
-		return fmt.Sprintf("%6d", rand.Intn(1000000))
+		return fmt.Sprintf("%06d", rand.Intn(1000000))
 	default:
-		return fmt.Sprintf("%6d", rand.Intn(1000000))
+		return fmt.Sprintf("%06d", rand.Intn(1000000))
 	}
 }
 

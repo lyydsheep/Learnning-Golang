@@ -23,7 +23,7 @@ func NewUserCache(client redis.Cmdable) *UserCache {
 }
 
 func (u *UserCache) Get(ctx context.Context, id int) (domain.User, error) {
-	key := u.Key(id)
+	key := u.getKey(id)
 	//获取缓存中的val
 	//注意该val是序列化后的
 	val, err := u.client.Get(ctx, key).Bytes()
@@ -38,7 +38,7 @@ func (u *UserCache) Get(ctx context.Context, id int) (domain.User, error) {
 
 func (u *UserCache) Set(ctx context.Context, user domain.User) error {
 	//设置key值
-	key := u.Key(user.Id)
+	key := u.getKey(user.Id)
 	//将val转成字节数据，因为redis只能存序列化后的数据，无法直接存domain.User
 	val, err := json.Marshal(user)
 	if err != nil {
@@ -48,7 +48,7 @@ func (u *UserCache) Set(ctx context.Context, user domain.User) error {
 	return u.client.Set(ctx, key, val, u.expiration).Err()
 }
 
-func (u *UserCache) Key(id int) string {
+func (u *UserCache) getKey(id int) string {
 	key := fmt.Sprintf("user:info:%d", id)
 	return key
 }

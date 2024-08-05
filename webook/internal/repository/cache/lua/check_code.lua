@@ -6,7 +6,7 @@ local keyCnt = key.."cnt"
 local inputCode = ARGV[1]
 -- 获取验证码和剩余验证次数
 local val = redis.call("get", key)
-local cnt = redis.call("get", keyCnt)
+local cnt = tonumber(redis.call("get", keyCnt))
 
 if val == nil then
     -- 系统错误

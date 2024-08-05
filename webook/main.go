@@ -60,11 +60,10 @@ func InitWebServer() *gin.Engine {
 		ExposeHeaders: []string{"x-jwt-token"},
 	}))
 
-	//初始化Redis
+	//初始化Redis,使用gin中间件进行限流
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: config.Config.Redis.Addr,
 	})
-	//使用gin中间件进行限流
 	server.Use(ratelimit.NewBuilder(redisClient, time.Minute, 100).Build())
 
 	////创建session
@@ -81,6 +80,7 @@ func InitWebServer() *gin.Engine {
 		IgnorePath("/users/signup")).
 		IgnorePath("/users/login").
 		IgnorePath("/users/login_sms/code/send").
+		IgnorePath("/users/login_sms").
 		Build())
 
 	return server

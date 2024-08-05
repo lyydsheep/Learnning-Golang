@@ -16,20 +16,30 @@ import (
 type UserHandler struct {
 	passwordRegexp *regexp.Regexp
 	emailRegexp    *regexp.Regexp
+	phoneRegexp    *regexp.Regexp
+	codeRegexp     *regexp.Regexp
 	svc            *service.UserService
 	codeSvc        *service.CodeService
 }
+
+const biz = "login"
 
 func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = "[A-Za-z0-9]+([_\\.][A-Za-z0-9]+)*@([A-Za-z0-9\\-]+\\.)+[A-Za-z]{2,6}"
 		passwordRegexPattern = "^(?=.*\\d)(?=.*[A-z])[\\da-zA-Z]{1,9}$"
+		phoneRegexpPattern   = "^[1]{1}[0-9]{10}$"
+		codeRegexpPattern    = "^[0-9]{6}$"
 	)
 	e := regexp.MustCompile(emailRegexPattern, regexp.None)
 	p := regexp.MustCompile(passwordRegexPattern, regexp.None)
+	ph := regexp.MustCompile(phoneRegexpPattern, regexp.None)
+	c := regexp.MustCompile(codeRegexpPattern, regexp.None)
 	return &UserHandler{
 		passwordRegexp: p,
 		emailRegexp:    e,
+		phoneRegexp:    ph,
+		codeRegexp:     c,
 		svc:            svc,
 		codeSvc:        codeSvc,
 	}
@@ -52,36 +62,77 @@ func (u *UserHandler) LoginSendCode(ctx *gin.Context) {
 	}
 	var req Req
 	if err := ctx.Bind(&req); err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		return
 	}
-	const biz = "login"
-	err := u.codeSvc.Send(ctx, biz, req.Phone)
-	if errors.Is(err, service.ErrTooFrequent) {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "发送过于频繁",
-		})
-		return
-	}
+	ok, err := u.phoneRegexp.MatchString(req.Phone)
 	if err != nil {
-		ctx.JSON(http.StatusOK, Result{
-			Code: 5,
-			Msg:  "系统错误",
-		})
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		return
 	}
-	ctx.JSON(http.StatusOK, Result{
-		Code: 2,
-		Msg:  "发送成功",
-	})
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式有误"})
+		return
+	}
+	err = u.codeSvc.Send(ctx, biz, req.Phone)
+	switch {
+	case errors.Is(err, nil):
+		ctx.JSON(http.StatusOK, Result{Msg: "发送成功"})
+	case errors.Is(err, service.ErrTooFrequent):
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "发送过于频繁"})
+	default:
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+	}
 }
 
 func (u *UserHandler) LoginSms(ctx *gin.Context) {
-
+	type Req struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	ok, err := u.phoneRegexp.MatchString(req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "手机号格式有误"})
+		return
+	}
+	ok, err = u.codeRegexp.MatchString(req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码格式不对"})
+		return
+	}
+	err = u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if errors.Is(err, service.ErrNotMatch) {
+		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码有误"})
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	user, err := u.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	err = u.setJWT(ctx, user.Id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: "登录/注册成功"})
 }
 
 func (u *UserHandler) Login(ctx *gin.Context) {
@@ -139,6 +190,15 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 
+	if err = u.setJWT(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+
+	ctx.String(http.StatusOK, "登录成功")
+}
+
+func (u *UserHandler) setJWT(ctx *gin.Context, uid int) error {
 	//将用户id赋值于claims
 	uc := UserClaims{
 		//添加过期时间
@@ -146,7 +206,7 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
 		//添加UserId
-		UserId: user.Id,
+		UserId: uid,
 		//添加UserAgent
 		UserAgent: ctx.Request.UserAgent(),
 	}
@@ -154,14 +214,12 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, uc)
 	tokenStr, err := token.SignedString([]byte("6dGChSIkiB7LRnrpSiYgRe1gtbPdbXit"))
 	if err != nil {
-		ctx.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	//将jwt-token加入头部
 	ctx.Header("x-jwt-token", tokenStr)
-
-	ctx.String(http.StatusOK, "登录成功")
+	return nil
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
@@ -281,10 +339,13 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 	}
 	uc, ok := val.(UserClaims)
 	if !ok {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
+		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	//使用userId进行数据查询
-	ctx.String(http.StatusOK, "hello world")
-	fmt.Println(uc.UserId)
+	uid := uc.UserId
+	user, err := u.svc.Profile(ctx, uid)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
+	}
+	ctx.JSON(http.StatusOK, Result{Msg: fmt.Sprintf("id: %d, name: %s, phone: %s", user.Id, user.Name, user.Phone)})
 }

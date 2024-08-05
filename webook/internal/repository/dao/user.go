@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
@@ -15,8 +16,9 @@ var (
 )
 
 type User struct {
-	Id        int    `gorm:"primaryKey, autoIncrement"`
-	Email     string `gorm:"unique"`
+	Id        int            `gorm:"primaryKey, autoIncrement"`
+	Email     sql.NullString `gorm:"unique"`
+	Phone     sql.NullString `gorm:"unique"`
 	Password  string
 	Name      string
 	Birthday  string
@@ -71,7 +73,16 @@ func (dao *UserDAO) Update(ctx context.Context, u User) error {
 
 func (dao *UserDAO) FindById(ctx context.Context, id int) (User, error) {
 	var u User
-	err := dao.db.First(&u, id).Error
+	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	if errors.Is(err, ErrUserNotFound) {
+		return User{}, ErrUserNotFound
+	}
+	return u, err
+}
+
+func (dao *UserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	if errors.Is(err, ErrUserNotFound) {
 		return User{}, ErrUserNotFound
 	}

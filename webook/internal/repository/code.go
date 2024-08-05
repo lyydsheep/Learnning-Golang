@@ -8,6 +8,7 @@ import (
 var (
 	ErrTooFrequent = cache.ErrTooFrequent
 	ErrNotMatch    = cache.ErrNotMatch
+	ErrExceed      = cache.ErrExceed
 )
 
 type CodeRepository struct {

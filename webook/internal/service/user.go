@@ -61,3 +61,18 @@ func (svc *UserService) Profile(ctx context.Context, id int) (domain.User, error
 	}
 	return u, err
 }
+
+func (svc *UserService) FindOrCreate(ctx context.Context, phone string) (domain.User, error) {
+	u, err := svc.repo.FindByPhone(ctx, phone)
+	if !errors.Is(err, ErrUserNotFound) {
+		//存在或错误
+		return u, err
+	}
+	//木有，需要创建
+	err = svc.repo.Create(ctx, domain.User{Phone: phone})
+	if err != nil {
+		return domain.User{}, err
+	}
+	// 这里会有主从延迟问题（不懂~_~)
+	return svc.repo.FindByPhone(ctx, phone)
+}
