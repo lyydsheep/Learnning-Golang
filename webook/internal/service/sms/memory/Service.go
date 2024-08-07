@@ -9,7 +9,7 @@ import (
 type Service struct {
 }
 
-func NewService() *Service {
+func NewService() sms2.SMS {
 	return &Service{}
 }
 

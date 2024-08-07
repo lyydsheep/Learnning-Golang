@@ -7,19 +7,19 @@ import (
 	"strconv"
 )
 
-type CodeMemory struct {
+type MemoryCodeCache struct {
 	client *freecache.Cache
 	expire int
 }
 
 func NewCodeMemory(c *freecache.Cache) CodeCache {
-	return &CodeMemory{
+	return &MemoryCodeCache{
 		client: c,
 		expire: 60,
 	}
 }
 
-func (c *CodeMemory) CheckCode(ctx context.Context, key string, input string) error {
+func (c *MemoryCodeCache) CheckCode(ctx context.Context, key string, input string) error {
 	fmt.Println("this is freeCache checkCode")
 	// 有 or 没有
 	keyByte, cntByte := c.toByte(key), c.toByte(key+"cnt")
@@ -51,7 +51,7 @@ func (c *CodeMemory) CheckCode(ctx context.Context, key string, input string) er
 	return ErrNotMatch
 }
 
-func (c *CodeMemory) SetCode(ctx context.Context, key string, val string) error {
+func (c *MemoryCodeCache) SetCode(ctx context.Context, key string, val string) error {
 	//要上锁
 	fmt.Println("this is freeCache setCode")
 	keyByte, valByte, cntByte := c.toByte(key), c.toByte(val), c.toByte(key+"cnt")
@@ -70,10 +70,10 @@ func (c *CodeMemory) SetCode(ctx context.Context, key string, val string) error 
 	return err
 }
 
-func (c *CodeMemory) toByte(s string) []byte {
+func (c *MemoryCodeCache) toByte(s string) []byte {
 	return []byte(s)
 }
 
-func (c *CodeMemory) toString(x []byte) string {
+func (c *MemoryCodeCache) toString(x []byte) string {
 	return string(x)
 }

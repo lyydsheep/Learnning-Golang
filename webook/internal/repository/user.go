@@ -12,19 +12,29 @@ import (
 var ErrUserDuplicate = dao.ErrUserDuplicate
 var ErrUserNotFound = dao.ErrUserNotFound
 
-type UserRepository struct {
-	ud *dao.UserDAO
-	uc *cache.UserCache
+type UserRepository interface {
+	FindByEmail(ctx context.Context, email string) (domain.User, error)
+	FindById(ctx context.Context, id int) (domain.User, error)
+	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	Create(ctx context.Context, u domain.User) error
+	Update(ctx context.Context, u domain.User) error
+	domainToEntity(u domain.User) dao.User
+	entityToDomain(u dao.User) domain.User
 }
 
-func NewUserRepository(ud *dao.UserDAO, uc *cache.UserCache) *UserRepository {
-	return &UserRepository{
+type BasicUserRepository struct {
+	ud dao.UserDAO
+	uc cache.UserCache
+}
+
+func NewUserRepository(ud dao.UserDAO, uc cache.UserCache) UserRepository {
+	return &BasicUserRepository{
 		ud: ud,
 		uc: uc,
 	}
 }
 
-func (repo *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (repo *BasicUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	//通过dao操作数据库
 	u, err := repo.ud.FindByEmail(ctx, email)
 	if errors.Is(err, ErrUserNotFound) {
@@ -33,15 +43,15 @@ func (repo *UserRepository) FindByEmail(ctx context.Context, email string) (doma
 	return repo.entityToDomain(u), err
 }
 
-func (repo *UserRepository) Create(ctx context.Context, u domain.User) error {
+func (repo *BasicUserRepository) Create(ctx context.Context, u domain.User) error {
 	return repo.ud.Insert(ctx, repo.domainToEntity(u))
 }
 
-func (repo *UserRepository) Update(ctx context.Context, u domain.User) error {
+func (repo *BasicUserRepository) Update(ctx context.Context, u domain.User) error {
 	return repo.ud.Update(ctx, repo.domainToEntity(u))
 }
 
-func (repo *UserRepository) FindById(ctx context.Context, id int) (domain.User, error) {
+func (repo *BasicUserRepository) FindById(ctx context.Context, id int) (domain.User, error) {
 	u, err := repo.uc.Get(ctx, id)
 	//缓存中有数据
 	if err == nil {
@@ -62,12 +72,12 @@ func (repo *UserRepository) FindById(ctx context.Context, id int) (domain.User, 
 	return u, err
 }
 
-func (repo *UserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
+func (repo *BasicUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	ue, err := repo.ud.FindByPhone(ctx, phone)
 	return repo.entityToDomain(ue), err
 }
 
-func (repo *UserRepository) domainToEntity(u domain.User) dao.User {
+func (repo *BasicUserRepository) domainToEntity(u domain.User) dao.User {
 	return dao.User{
 		Id: u.Id,
 		Email: sql.NullString{
@@ -85,7 +95,7 @@ func (repo *UserRepository) domainToEntity(u domain.User) dao.User {
 	}
 }
 
-func (repo *UserRepository) entityToDomain(u dao.User) domain.User {
+func (repo *BasicUserRepository) entityToDomain(u dao.User) domain.User {
 	return domain.User{
 		Id:        u.Id,
 		Email:     u.Email.String,

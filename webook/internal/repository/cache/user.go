@@ -9,20 +9,25 @@ import (
 	"time"
 )
 
-type UserCache struct {
+type UserCache interface {
+	Get(ctx context.Context, id int) (domain.User, error)
+	Set(ctx context.Context, user domain.User) error
+}
+
+type RedisUserCache struct {
 	client     redis.Cmdable
 	expiration time.Duration
 }
 
-func NewUserCache(client redis.Cmdable) *UserCache {
+func NewUserCache(client redis.Cmdable) UserCache {
 	//设置过期时间
-	return &UserCache{
+	return &RedisUserCache{
 		client:     client,
 		expiration: 15 * time.Minute,
 	}
 }
 
-func (u *UserCache) Get(ctx context.Context, id int) (domain.User, error) {
+func (u *RedisUserCache) Get(ctx context.Context, id int) (domain.User, error) {
 	key := u.getKey(id)
 	//获取缓存中的val
 	//注意该val是序列化后的
@@ -36,7 +41,7 @@ func (u *UserCache) Get(ctx context.Context, id int) (domain.User, error) {
 	return user, err
 }
 
-func (u *UserCache) Set(ctx context.Context, user domain.User) error {
+func (u *RedisUserCache) Set(ctx context.Context, user domain.User) error {
 	//设置key值
 	key := u.getKey(user.Id)
 	//将val转成字节数据，因为redis只能存序列化后的数据，无法直接存domain.User
@@ -48,7 +53,7 @@ func (u *UserCache) Set(ctx context.Context, user domain.User) error {
 	return u.client.Set(ctx, key, val, u.expiration).Err()
 }
 
-func (u *UserCache) getKey(id int) string {
+func (u *RedisUserCache) getKey(id int) string {
 	key := fmt.Sprintf("user:info:%d", id)
 	return key
 }
