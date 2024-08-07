@@ -12,7 +12,7 @@ type CodeMemory struct {
 	expire int
 }
 
-func NewCodeMemory(c *freecache.Cache) *CodeMemory {
+func NewCodeMemory(c *freecache.Cache) CodeCache {
 	return &CodeMemory{
 		client: c,
 		expire: 60,

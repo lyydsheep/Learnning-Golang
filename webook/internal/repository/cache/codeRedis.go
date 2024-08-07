@@ -15,15 +15,15 @@ var luaSetCode string
 //go:embed lua/check_code.lua
 var luaCheckCode string
 
-type CodeRedisCache struct {
+type CodeRedis struct {
 	client redis.Cmdable
 }
 
-func NewCodeRedis(c redis.Cmdable) *CodeRedisCache {
-	return &CodeRedisCache{client: c}
+func NewCodeRedis(c redis.Cmdable) CodeCache {
+	return &CodeRedis{client: c}
 }
 
-func (cc *CodeRedisCache) CheckCode(ctx context.Context, key string, input string) error {
+func (cc *CodeRedis) CheckCode(ctx context.Context, key string, input string) error {
 	res, err := cc.client.Eval(ctx, luaCheckCode, []string{key}, input).Int()
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func (cc *CodeRedisCache) CheckCode(ctx context.Context, key string, input strin
 	}
 }
 
-func (cc *CodeRedisCache) SetCode(ctx context.Context, key string, val string) error {
+func (cc *CodeRedis) SetCode(ctx context.Context, key string, val string) error {
 	//获取返回值
 	res, err := cc.client.Eval(ctx, luaSetCode, []string{key}, val).Int()
 	if err != nil {

@@ -118,6 +118,10 @@ func (u *UserHandler) LoginSms(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, Result{Code: 4, Msg: "验证码有误"})
 		return
 	}
+	if errors.Is(err, service.ErrExceed) {
+		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "校验次数过多，请重新发送验证码"})
+		return
+	}
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{Code: 5, Msg: "系统错误"})
 		return
