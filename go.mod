@@ -12,6 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/google/wire v0.6.0
 	github.com/lyydsheep/generic_tools v0.0.0-20240803044535-3cf054c19621
 	github.com/redis/go-redis/v9 v9.5.4
 	github.com/stretchr/testify v1.9.0
