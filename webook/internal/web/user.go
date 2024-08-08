@@ -332,7 +332,7 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 //		ctx.String(http.StatusOK, "系统错误")
 //		return
 //	}
-//	ctx.String(http.StatusOK, "Name: %s, Birthday: %s Biography: %s", user.Name, user.Birthday, user.Biography)
+//	ctx.String(http.StatusOK, "name: %s, Birthday: %s Biography: %s", user.name, user.Birthday, user.Biography)
 //}
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
